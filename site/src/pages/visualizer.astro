@@ -1,0 +1,17 @@
+---
+import Layout from '../layouts/Layout.astro';
+import MermaidViewer from '../components/MermaidViewer';
+
+const breadcrumbs = [{ label: 'Visualizer', href: '/visualizer' }];
+---
+
+<Layout title="Project Visualizer" showBreadcrumbs={true} breadcrumbs={breadcrumbs}>
+  <div class="mb-8">
+    <h1 class="text-4xl font-bold mb-4">Project Visualizer</h1>
+    <p class="text-lg opacity-80">
+      Explore system architecture and flow diagrams.
+    </p>
+  </div>
+
+  <MermaidViewer client:load />
+</Layout>

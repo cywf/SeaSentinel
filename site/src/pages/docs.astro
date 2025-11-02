@@ -1,0 +1,154 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+
+const breadcrumbs = [{ label: 'Documentation', href: '/docs' }];
+
+// Read README.md from repository root
+const repoRoot = join(process.cwd(), '..');
+const readmePath = join(repoRoot, 'README.md');
+let readmeContent = '';
+
+if (existsSync(readmePath)) {
+  readmeContent = readFileSync(readmePath, 'utf-8');
+}
+
+// Simple markdown to HTML converter (basic implementation)
+function simpleMarkdownToHtml(md: string): string {
+  return md
+    .replace(/^### (.*$)/gim, '<h3 class="text-2xl font-bold mt-6 mb-3">$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2 class="text-3xl font-bold mt-8 mb-4">$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1 class="text-4xl font-bold mt-10 mb-5">$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n\n/g, '</p><p class="mb-4">')
+    .replace(/^(.+)$/gm, '<p class="mb-4">$1</p>');
+}
+---
+
+<Layout title="Documentation" showBreadcrumbs={true} breadcrumbs={breadcrumbs}>
+  <div class="mb-8">
+    <h1 class="text-4xl font-bold mb-4">Documentation</h1>
+    <p class="text-lg opacity-80">
+      Learn about SeaSentinel, GMDSS protocols, and how to use the system.
+    </p>
+  </div>
+
+  <!-- Navigation -->
+  <div class="tabs tabs-boxed bg-base-200 mb-6">
+    <a href="#readme" class="tab tab-active">README</a>
+    <a href="#gmdss-primer" class="tab">GMDSS Primer</a>
+  </div>
+
+  <!-- README Section -->
+  <div id="readme" class="card bg-base-200 shadow-xl mb-8">
+    <div class="card-body">
+      <h2 class="card-title text-3xl mb-4">README</h2>
+      <div class="prose prose-invert max-w-none">
+        {readmeContent ? (
+          <div set:html={simpleMarkdownToHtml(readmeContent)} />
+        ) : (
+          <p>README content not available.</p>
+        )}
+      </div>
+    </div>
+  </div>
+
+  <!-- GMDSS Primer Section -->
+  <div id="gmdss-primer" class="card bg-base-200 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title text-3xl mb-4">GMDSS Primer</h2>
+      
+      <div class="prose prose-invert max-w-none">
+        <h3 class="text-2xl font-bold mt-6 mb-3">What is GMDSS?</h3>
+        <p class="mb-4">
+          The <strong>Global Maritime Distress and Safety System (GMDSS)</strong> is an internationally agreed-upon
+          set of safety procedures, equipment, and communication protocols used to increase safety and make it
+          easier to rescue distressed ships, boats, and aircraft.
+        </p>
+
+        <h3 class="text-2xl font-bold mt-6 mb-3">Digital Selective Calling (DSC)</h3>
+        <p class="mb-4">
+          <strong>DSC</strong> is a semi-automated method of establishing radio contact using digital signals.
+          It allows vessels to instantly send an automatically formatted distress alert to all stations within range
+          or to specific coast stations. SeaSentinel monitors DSC traffic for:
+        </p>
+        <ul class="list-disc list-inside mb-4 ml-4">
+          <li>Unauthorized distress calls from unknown MMSIs</li>
+          <li>Unusual transmission patterns or frequencies</li>
+          <li>Malformed message structures</li>
+          <li>Geographic anomalies in position reports</li>
+        </ul>
+
+        <h3 class="text-2xl font-bold mt-6 mb-3">NAVTEX</h3>
+        <p class="mb-4">
+          <strong>NAVTEX</strong> is an international automated system for instantly distributing maritime
+          navigational warnings, weather forecasts, and urgent safety-related information to ships.
+          SeaSentinel analyzes NAVTEX broadcasts to detect:
+        </p>
+        <ul class="list-disc list-inside mb-4 ml-4">
+          <li>Spoofed or unauthorized transmissions</li>
+          <li>Invalid station identifiers</li>
+          <li>Message format violations</li>
+          <li>Suspicious content patterns</li>
+        </ul>
+
+        <h3 class="text-2xl font-bold mt-6 mb-3">AIS/NMEA</h3>
+        <p class="mb-4">
+          <strong>Automatic Identification System (AIS)</strong> and <strong>NMEA</strong> (National Marine
+          Electronics Association) protocols are used for vessel identification, collision avoidance, and
+          navigation data exchange. SeaSentinel parses AIS/NMEA data streams to identify:
+        </p>
+        <ul class="list-disc list-inside mb-4 ml-4">
+          <li>Spoofed vessel identities (MMSI manipulation)</li>
+          <li>Impossible position updates or velocities</li>
+          <li>Invalid message checksums</li>
+          <li>Anomalous navigation status changes</li>
+        </ul>
+
+        <h3 class="text-2xl font-bold mt-6 mb-3">How SeaSentinel Monitors GMDSS</h3>
+        <p class="mb-4">
+          SeaSentinel acts as a passive observer and active detector in the GMDSS ecosystem:
+        </p>
+        <div class="grid md:grid-cols-2 gap-4 mb-4">
+          <div class="card bg-base-300">
+            <div class="card-body">
+              <h4 class="card-title text-lg">Observation Points</h4>
+              <ul class="list-disc list-inside text-sm">
+                <li>Radio receivers (VHF/MF/HF bands)</li>
+                <li>Network taps on shipboard systems</li>
+                <li>Shore station monitoring</li>
+                <li>Satellite communication links</li>
+              </ul>
+            </div>
+          </div>
+          <div class="card bg-base-300">
+            <div class="card-body">
+              <h4 class="card-title text-lg">Detection Methods</h4>
+              <ul class="list-disc list-inside text-sm">
+                <li>Signature-based pattern matching</li>
+                <li>Anomaly detection algorithms</li>
+                <li>Behavioral analysis</li>
+                <li>Protocol validation</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-warning mt-6">
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <h4 class="font-bold">Important Note</h4>
+            <p class="text-sm">
+              This is a security monitoring system. All monitoring must comply with applicable
+              maritime regulations, radio licensing requirements, and privacy laws.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
