@@ -1,0 +1,17 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DiscussionsList from '../components/DiscussionsList';
+
+const breadcrumbs = [{ label: 'Discussions', href: '/discussions' }];
+---
+
+<Layout title="Community Discussions" showBreadcrumbs={true} breadcrumbs={breadcrumbs}>
+  <div class="mb-8">
+    <h1 class="text-4xl font-bold mb-4">Community Discussions</h1>
+    <p class="text-lg opacity-80">
+      Join the conversation about GMDSS security, features, and development.
+    </p>
+  </div>
+
+  <DiscussionsList client:load />
+</Layout>

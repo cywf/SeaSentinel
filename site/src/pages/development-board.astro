@@ -1,0 +1,17 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DevelopmentBoard from '../components/DevelopmentBoard';
+
+const breadcrumbs = [{ label: 'Development Board', href: '/development-board' }];
+---
+
+<Layout title="Development Board" showBreadcrumbs={true} breadcrumbs={breadcrumbs}>
+  <div class="mb-8">
+    <h1 class="text-4xl font-bold mb-4">Development Board</h1>
+    <p class="text-lg opacity-80">
+      Track project progress, issues, and development tasks.
+    </p>
+  </div>
+
+  <DevelopmentBoard client:load />
+</Layout>

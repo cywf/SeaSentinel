@@ -1,0 +1,115 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./site
+        run: npm ci
+
+      - name: Generate rulebook indexes
+        working-directory: ./site
+        run: |
+          npx tsx scripts/index_rules.ts || echo "No rules found"
+          npx tsx scripts/index_signatures.ts || echo "No signatures found"
+          npx tsx scripts/index_playbooks.ts || echo "No playbooks found"
+
+      - name: Fetch repository data
+        working-directory: ./site
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx tsx scripts/fetch_repo_data.ts
+          npx tsx scripts/fetch_discussions.ts
+          npx tsx scripts/fetch_projects.ts
+
+      - name: Copy brand assets
+        run: |
+          if [ -d "assets" ]; then
+            mkdir -p site/public/assets
+            cp -r assets/* site/public/assets/
+          fi
+
+      - name: Discover and copy Mermaid diagrams
+        run: |
+          mkdir -p site/public/diagrams
+          if [ -d "mermaid" ]; then
+            find mermaid -name "*.mmd" -type f | while read file; do
+              cp "$file" site/public/diagrams/
+            done
+          fi
+          # Create diagrams index
+          cd site/public/diagrams
+          if [ -n "$(ls -A *.mmd 2>/dev/null)" ]; then
+            echo '[' > diagrams.json
+            first=true
+            for file in *.mmd; do
+              [ "$first" = false ] && echo ',' >> diagrams.json
+              first=false
+              name=$(basename "$file" .mmd)
+              content=$(cat "$file" | jq -Rs .)
+              echo "  {\"name\": \"$name\", \"path\": \"mermaid/$file\", \"content\": $content}" >> diagrams.json
+            done
+            echo ']' >> diagrams.json
+          else
+            echo '[]' > diagrams.json
+          fi
+
+      - name: Build site
+        working-directory: ./site
+        env:
+          PUBLIC_COMMIT_SHA: ${{ github.sha }}
+          PUBLIC_DEPLOY_TIMESTAMP: ${{ github.event.head_commit.timestamp }}
+          PUBLIC_DEFAULT_THEME: nightfall
+        run: npm run build
+
+      - name: Run Lighthouse CI
+        working-directory: ./site
+        run: |
+          npm install -g @lhci/cli
+          npx lhci autorun --collect.staticDistDir=dist --upload.target=temporary-public-storage || true
+        continue-on-error: true
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site/dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
